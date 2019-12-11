@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -96,7 +97,7 @@ class Trainer():
                 torch.save(model.state_dict(), './models/fold_'+str(idx+1)+'.pth.tar')
         
         torch.cuda.empty_cache()
-        print("Fold Validation Results:", np.round_(best_vals, 5)
+        print("Best Fold Validation Results:", np.round_(best_vals, 5))
         print("Finished Cross Validation Training")
     
     def test(self, model, batch_size, num_workers):
