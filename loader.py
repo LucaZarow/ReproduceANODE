@@ -1,17 +1,17 @@
 import torch
+import numpy as np
 from mlxtend.data import loadlocal_mnist
 from torch.utils.data import Dataset
 
 #TODO: unit test file
 
-# end2end kfold integration
-# splits double packed - ((train_data, train_labels), (val_data, val_labels), (test_data, test_labels))
+# end2end kfold integration - passed to loader
 class kFold():
     def __init__(self, images, labels, numFolds=5):
-        self.data = self.__pack__(images, data)
+        self.data = self._pack(images, labels)
         self.numFolds = numFolds
     
-    def __unpack__(subset):
+    def _unpack(self, subset):
         data = []
         labels = []
 
@@ -24,7 +24,7 @@ class kFold():
     
         return (data, labels)
 
-    def __pack__(data, labels):
+    def _pack(self, data, labels):
         values = []
         
         for idx in range(len(data)):
@@ -34,7 +34,7 @@ class kFold():
         return np.array(values)
     
     
-    def generateSplits(self):
+    def split(self):
         np.random.shuffle(self.data)
         
         splits = []
@@ -44,7 +44,7 @@ class kFold():
         for i in range(self.numFolds - 1):
             folds.append(self.data[i*splitPoint:(i+1)*splitPoint, :])
             
-        folds.append(self.data[(i+1)*splitPoint:,:]
+        folds.append(self.data[(i+1)*splitPoint:,:])
         
         foldDivisor = len(folds[0]) // 2
         for i in range(self.numFolds):
@@ -58,12 +58,12 @@ class kFold():
             
             train = np.vstack(train)
             splits.append((
-                self.__unpack__(train), 
-                self.__unpack__(validation),
-                self.__unpack__(test)
+                self._unpack(train), 
+                self._unpack(validation),
+                self._unpack(test)
             ))
         
-         return splits    
+        return splits    
 
 # torch dataset object
 class torchSet(Dataset):
@@ -82,14 +82,16 @@ class torchSet(Dataset):
 class MNIST():
     def __init__(self, img_path, label_path, num_folds):
         data, labels = loadlocal_mnist(images_path=img_path, labels_path=label_path)
-        data = data.reshape(data.shape[0], 28, 28)
-        self.splits = kFold(data, labels, num_folds).generateSplits()
+        data = data.reshape(data.shape[0], 28, 28).astype(np.float32)
+        self.splits = kFold(data, labels, num_folds).split()
 
-# TODO: LOAD CIFAR, verify reshape
+# TODO: LOAD CIFAR, verify reshape, lut label mapping
 # CIFAR auto-split generator                     
 class CIFAR():
     def __init__(self, img_path, label_path, num_folds):
-        data, labels = loadlocal_mnist(images_path=img_path, labels_path=label_path)
-        data = data.reshape(data.shape[0], 32, 32)
-        self.splits = kFold(data, labels, num_folds).generateSplits()
+#         data, labels = loadlocal_mnist(images_path=img_path, labels_path=label_path)
+#         data = data.reshape(data.shape[0], 32, 32)
+        self.LUT = {category: index for index, category in enumerate(np.unique(labels))}
+        labels = [self.LUT[str(label)] for label in labels]
+        self.splits = kFold(data, labels, num_folds).split()
                          
