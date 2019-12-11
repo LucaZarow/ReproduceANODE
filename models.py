@@ -1,12 +1,12 @@
 import torch
 from torch import nn
 
-class VanillaMNIST(nn.Module):
-    def __init__(self):
-        super(VanillaMNIST, self).__init__()
+class VanillaCNN(nn.Module):
+    def __init__(self, in_channels):
+        super(VanillaCNN, self).__init__()
 
         self.blockOne = nn.Sequential(
-            nn.Conv2d(1, 8, 3, padding=1),
+            nn.Conv2d(in_channels, 8, 3, padding=1),
             nn.BatchNorm2d(8),
             nn.ReLU(True),
             nn.Dropout2d(0.2),

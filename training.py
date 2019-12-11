@@ -44,7 +44,7 @@ class Trainer():
                 for i, (item, target) in enumerate(train_loader):
             
                     item = torch.Tensor(item)
-                    item = item.to(device=self.device, dtype=torch.float32).unsqueeze(1)
+                    item = item.to(device=self.device, dtype=torch.float32)
                     target = target.to(device=self.device, dtype=torch.int64)
 
 
@@ -78,7 +78,7 @@ class Trainer():
                 for i, (item, target) in enumerate(val_loader):
            
                     item = torch.Tensor(item)
-                    item = item.to(device=self.device, dtype=torch.float32).unsqueeze(1)
+                    item = item.to(device=self.device, dtype=torch.float32)
                     target = target.to(device=self.device, dtype=torch.int64)
            
                     output = model(item)
@@ -118,7 +118,7 @@ class Trainer():
             for i, (item, target) in enumerate(test_loader):
 
                 item = torch.Tensor(item)
-                item = item.to(device=self.device, dtype=torch.float32).unsqueeze(1)
+                item = item.to(device=self.device, dtype=torch.float32)
                 target = target.to(device=self.device, dtype=torch.int64)
 
                 output = model(item)

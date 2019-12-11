@@ -2,8 +2,8 @@ import torch
 import numpy as np
 from mlxtend.data import loadlocal_mnist
 from torch.utils.data import Dataset
-
-#TODO: unit test file
+import pickle as pickle
+import os
 
 # end2end kfold integration - passed to loader
 class kFold():
@@ -82,16 +82,32 @@ class torchSet(Dataset):
 class MNIST():
     def __init__(self, img_path, label_path, num_folds):
         data, labels = loadlocal_mnist(images_path=img_path, labels_path=label_path)
-        data = data.reshape(data.shape[0], 28, 28).astype(np.float32)
+        data = data.reshape(data.shape[0], 1, 28, 28).astype(np.float32)
         self.splits = kFold(data, labels, num_folds).split()
 
-# TODO: LOAD CIFAR, verify reshape, lut label mapping
 # CIFAR auto-split generator                     
 class CIFAR():
-    def __init__(self, img_path, label_path, num_folds):
-#         data, labels = loadlocal_mnist(images_path=img_path, labels_path=label_path)
-#         data = data.reshape(data.shape[0], 32, 32)
-        self.LUT = {category: index for index, category in enumerate(np.unique(labels))}
-        labels = [self.LUT[str(label)] for label in labels]
+    def __init__(self, data_path, num_folds):
+        data, labels = self.load_CIFAR_set(data_path)
         self.splits = kFold(data, labels, num_folds).split()
-                         
+
+    def _load_CIFAR_batch(self, filename):
+        with open(filename, 'rb') as f:
+            datadict = pickle.load(f, encoding='latin1')
+            X = datadict['data']
+            Y = datadict['labels']
+            X = X.reshape(10000, 3, 32, 32).astype(np.float32)
+            Y = np.array(Y)
+            return X, Y
+        
+    def load_CIFAR_set(self, rootdir):
+        imgs = []
+        labels = []
+        for idx in range(1,6):
+            fp = os.path.join(rootdir, 'data_batch_%d' % (idx, ))
+            X, Y = self._load_CIFAR_batch(fp)
+            imgs.append(X)
+            labels.append(Y)
+        imgs = np.concatenate(imgs)
+        labels = np.concatenate(labels)
+        return imgs, labels
