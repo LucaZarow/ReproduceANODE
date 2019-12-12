@@ -7,7 +7,7 @@ class NeuralODE(nn.Module):
     # time_dependent = True
     # non_linearity = 'relu'
     # adjoint = False
-    def __init__(self, device, image_size, num_filters, out_dim, 
+    def __init__(self, image_size, num_filters, out_dim, 
                augmented_dim=0, tolerance=1e-3):
         super(NeuralODE, self).__init__()
 
@@ -15,7 +15,7 @@ class NeuralODE(nn.Module):
 
         function = ODEConv(image_size, num_filters, augmented_dim)
 
-        self.block_ODE = ODEBlock(device, function, tolerance)
+        self.block_ODE = ODEBlock(function, tolerance)
         self.block_non_linear = nn.Linear(flattened_dim, out_dim)
 
     def forward(self, x):
@@ -28,9 +28,8 @@ class NeuralODE(nn.Module):
 class ODEBlock(nn.Module):
     # is_conv = true
     # adjoint = False
-    def __init__(self, device, function, tolerance):
+    def __init__(self, function, tolerance):
         super(ODEBlock, self).__init__()
-        self.device = device
         self.function = function
         self.tolerance = tolerance
 
@@ -45,7 +44,7 @@ class ODEBlock(nn.Module):
         if self.function.augmented_dim > 0:
             batch_size, channels, height, width = x.shape
             aug = torch.zeros(batch_size, self.function.augment_dim,
-                              height, width).to(self.device)
+                              height, width)
             x_aug = torch.cat([x, aug], 1)
         else:
             x_aug = x
