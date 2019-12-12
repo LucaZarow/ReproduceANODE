@@ -15,17 +15,21 @@ class Trainer():
         self.data = data
         self.device = device
         self.train_metrics = {
+            'legend' : "Train",
             'epochs' : None, 
             'loss' : {},
             'accuracy' : {}
         }
         self.val_metrics = {
+            'legend' : "Validation",
             'epochs' : None,
             'loss' : {},
             'accuracy' : {}
         }
             
-
+    def metrics(self):
+        return [self.train_metrics, self.val_metrics]
+    
     def train(self, model, epochs, learning_rate, batch_size, num_workers, verbose=True, checkpoint=True, num_loss = 5):
         best_vals = [0,0,0,0,0]
         for idx, split in enumerate(self.data.splits):           
@@ -48,7 +52,7 @@ class Trainer():
             train_accuracies = []
             val_losses = []
             val_accuracies = []
-            self.train_metric['epochs'] = epochs
+            self.train_metrics['epochs'] = epochs
             self.val_metrics['epochs'] = epochs
             
             for epoch in range(epochs):
