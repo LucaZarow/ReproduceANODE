@@ -22,7 +22,7 @@ class NeuralODE(nn.Module):
 
     def forward(self, x):
         x = self.block_ODE(x)
-        x = x.view(x.size(0),-1)
+        x = x.view(x.size(0), -1)
         x = self.block_linear(x)
 
         return x
@@ -64,7 +64,7 @@ class ODEConv(nn.Module):
         super(ODEConv, self).__init__()
         self.nfe = 0  # Number of function evaluations
         self.augmented_dim = augmented_dim
-
+        
         channels = in_channels + augmented_dim
        
         self.block_conv1 = Conv2dTime(channels, num_filters,

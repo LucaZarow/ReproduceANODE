@@ -20,3 +20,6 @@ config_cifar_anode = {
     'model' : (3, 32, 32, 64, 10, 5, 1e-3),
     'train' : (1e-2, 5, 32, 8)
 }
+
+
+# Hyperparam tuning here
