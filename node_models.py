@@ -2,25 +2,27 @@ import torch
 from torch import nn
 from torchdiffeq import odeint
 
+MAX_NUM_STEPS = 1000
+
 class NeuralODE(nn.Module):
     # Note certain parameters are constant throughout paper experiments and so are used directly, namely:
     # time_dependent = True
     # non_linearity = 'relu'
     # adjoint = False
-    def __init__(self, image_size, num_filters, out_dim, 
-               augmented_dim=0, tolerance=1e-3):
+    def __init__(self, in_channels, height, width, num_filters, 
+                 out_dim=10, augmented_dim=0, tolerance=1e-3):
         super(NeuralODE, self).__init__()
 
-        flattened_dim = (img_size[0] + augmented_dim) * img_size[1] * img_size[2]
+        flattened_dim = (in_channels + augmented_dim) * height * width
 
-        function = ODEConv(image_size, num_filters, augmented_dim)
+        function = ODEConv(in_channels, num_filters, augmented_dim)
 
         self.block_ODE = ODEBlock(function, tolerance)
-        self.block_non_linear = nn.Linear(flattened_dim, out_dim)
+        self.block_linear = nn.Linear(flattened_dim, out_dim)
 
     def forward(self, x):
         x = self.block_ODE(x)
-        x = self.block_non_linear(x)
+        x = self.block_linear(x)
 
         return x
 
@@ -49,20 +51,19 @@ class ODEBlock(nn.Module):
         else:
             x_aug = x
 
-        out = odeint(self.function, x_aug, integration_time,
-                    rtol=self.tolerance, atol=self.tolerance, method='dopri5',
-                    options={'max_num_steps': MAX_NUM_STEPS})
-        return out
+        x = odeint(self.function, x_aug, integration_time,
+                   rtol=self.tolerance, atol=self.tolerance, method='dopri5',
+                   options={'max_num_steps': MAX_NUM_STEPS})
+        return x
 
 class ODEConv(nn.Module):  
     # time_dependent = True
     # non_linearity = 'relu'
-    def __init__(self, image_size, num_filters, augmented_dim): 
+    def __init__(self, in_channels, num_filters, augmented_dim): 
         super(ODEConv, self).__init__()
         self.nfe = 0  # Number of function evaluations
 
-        channels, height, width = img_size
-        channels += augmented_dim
+        channels = in_channels + augmented_dim
        
         self.conv1 = Conv2dTime(channels, num_filters,
                                 kernel_size=1, stride=1, padding=0)
@@ -74,11 +75,15 @@ class ODEConv(nn.Module):
         self.block_non_linear = nn.ReLU(inplace=True)
 
     def forward(self, t, x):
-        out = self.conv1(t, x)
+        self.nfe += 1
+
+        x = self.conv1(t, x)
         x = self.block_non_linear(x)
         x = self.block_conv2(t, x)
         x = self.block_non_linear(x)
         x = self.block_conv3(t, x)
+
+        return x
 
 # same as code base
 class Conv2dTime(nn.Conv2d):
