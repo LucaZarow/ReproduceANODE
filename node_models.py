@@ -22,6 +22,7 @@ class NeuralODE(nn.Module):
 
     def forward(self, x):
         x = self.block_ODE(x)
+        x = x.view(x.size(0), -1)
         x = self.block_linear(x)
 
         return x
@@ -36,7 +37,7 @@ class ODEBlock(nn.Module):
         self.tolerance = tolerance
 
     # eval_times=None (since not plotting convolution trajectory)
-    def forward(self, t, x):
+    def forward(self, x):
         self.function.nfe = 0
 
         #Only need final result of convolution for plots
@@ -45,8 +46,8 @@ class ODEBlock(nn.Module):
         #if ANODE
         if self.function.augmented_dim > 0:
             batch_size, channels, height, width = x.shape
-            aug = torch.zeros(batch_size, self.function.augment_dim,
-                              height, width)
+            aug = torch.zeros(batch_size, self.function.augmented_dim,
+                              height, width).to("cuda")
             x_aug = torch.cat([x, aug], 1)
         else:
             x_aug = x
@@ -54,7 +55,7 @@ class ODEBlock(nn.Module):
         x = odeint(self.function, x_aug, integration_time,
                    rtol=self.tolerance, atol=self.tolerance, method='dopri5',
                    options={'max_num_steps': MAX_NUM_STEPS})
-        return x
+        return x[1]
 
 class ODEConv(nn.Module):  
     # time_dependent = True
@@ -62,14 +63,15 @@ class ODEConv(nn.Module):
     def __init__(self, in_channels, num_filters, augmented_dim): 
         super(ODEConv, self).__init__()
         self.nfe = 0  # Number of function evaluations
-
+        self.augmented_dim = augmented_dim
+        
         channels = in_channels + augmented_dim
        
-        self.conv1 = Conv2dTime(channels, num_filters,
+        self.block_conv1 = Conv2dTime(channels, num_filters,
                                 kernel_size=1, stride=1, padding=0)
-        self.conv2 = Conv2dTime(num_filters, num_filters,
+        self.block_conv2 = Conv2dTime(num_filters, num_filters,
                                 kernel_size=3, stride=1, padding=1)
-        self.conv3 = Conv2dTime(num_filters, channels,
+        self.block_conv3 = Conv2dTime(num_filters, channels,
                                 kernel_size=1, stride=1, padding=0)
 
         self.block_non_linear = nn.ReLU(inplace=True)
@@ -77,7 +79,7 @@ class ODEConv(nn.Module):
     def forward(self, t, x):
         self.nfe += 1
 
-        x = self.conv1(t, x)
+        x = self.block_conv1(t, x)
         x = self.block_non_linear(x)
         x = self.block_conv2(t, x)
         x = self.block_non_linear(x)
