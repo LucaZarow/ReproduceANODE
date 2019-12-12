@@ -11,9 +11,12 @@ from models import *
 
 
 class Trainer():
-    def __init__(self, data, device):
+    def __init__(self, model, optimizer, data, device):
+        self.model= model
+        self.optimizer= optimizer
         self.data = data
         self.device = device
+        
         self.train_metrics = {
             'legend' : "Train",
             'epochs' : None, 
@@ -26,12 +29,19 @@ class Trainer():
             'loss' : {},
             'accuracy' : {}
         }
+        self.test_metrics = None
             
     def metrics(self):
         return [self.train_metrics, self.val_metrics]
     
-    def train(self, model, epochs, learning_rate, batch_size, num_workers, verbose=True, checkpoint=True, num_loss = 5):
-        best_vals = [0,0,0,0,0]
+    def _initModel(self, params):
+        return self.model(*params)
+    
+    def _initOptimizer(self, model, lr):
+        return self.optimizer(model.parameters(), lr)
+    
+    def train(self, model_params, learning_rate, epochs, batch_size, num_workers, verbose=True, checkpoint=True, num_loss = 5):
+        best_vals = [0,0,0,0,0] #static for 5fold - to be adapted
         for idx, split in enumerate(self.data.splits):           
             train, validation, _ = split
             train_data = torchSet(train)
@@ -42,11 +52,10 @@ class Trainer():
                                                      num_workers=num_workers)
            
             torch.cuda.empty_cache()
-            model.reset(model)
-            model = model.to(self.device)
+            model = self._initModel(model_params).to(self.device)
+            optimizer = self._initOptimizer(model, learning_rate)
             loss = nn.CrossEntropyLoss().to(self.device)
-            optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-            
+
             best_score = 0
             train_losses = []
             train_accuracies = []
@@ -138,7 +147,8 @@ class Trainer():
         print("Best Fold Validation Results:", np.round_(best_vals, 5))
         print("Finished Cross Validation Training")
     
-    def test(self, model, batch_size, num_workers):
+    def test(self, model_params, batch_size, num_workers):
+        test_results = []
         for idx, split in enumerate(self.data.splits): 
             
             _, _, test = split
@@ -146,6 +156,7 @@ class Trainer():
             test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, \
                                                        num_workers=num_workers)
             torch.cuda.empty_cache()
+            model = self._initModel(model_params)
             model.load_state_dict(torch.load("./models/fold_"+str(idx+1)+'.pth.tar'))
             model = model.to(self.device)
             
@@ -167,4 +178,6 @@ class Trainer():
                 total += len(correct_preds)
                 
             test_acc = correct / total
+            test_results.append(test_acc)
             print("[Fold: "+str(idx+1)+"] Testing Acc:", test_acc)
+        self.test_metrics = test_results
