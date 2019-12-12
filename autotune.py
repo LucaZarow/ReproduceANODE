@@ -29,7 +29,7 @@ class Autotuner():
         best_score = -1
         for idx, log in enumerate(self.logs):
             if log['results'] > best_score:
-                best_score = ['results']
+                best_score = log['results']
                 best_id = idx
-        return self.logs[idx]
+        return self.logs[best_id]
             
