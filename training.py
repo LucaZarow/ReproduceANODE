@@ -14,11 +14,21 @@ class Trainer():
     def __init__(self, data, device):
         self.data = data
         self.device = device
+        self.train_metrics = {
+            'epochs' : None, 
+            'loss' : {},
+            'accuracy' : {}
+        }
+        self.val_metrics = {
+            'epochs' : None,
+            'loss' : {},
+            'accuracy' : {}
+        }
+            
 
     def train(self, model, epochs, learning_rate, batch_size, num_workers, verbose=True, checkpoint=True, num_loss = 5):
         best_vals = [0,0,0,0,0]
-        for idx, split in enumerate(self.data.splits): 
-            
+        for idx, split in enumerate(self.data.splits):           
             train, validation, _ = split
             train_data = torchSet(train)
             val_data = torchSet(validation)
@@ -34,12 +44,20 @@ class Trainer():
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
             
             best_score = 0
+            train_losses = []
+            train_accuracies = []
+            val_losses = []
+            val_accuracies = []
+            self.train_metric['epochs'] = epochs
+            self.val_metrics['epochs'] = epochs
+            
             for epoch in range(epochs):
                 
                 model.train()
                 correct = 0.
                 total = 0.
                 running_loss = 0.0
+                avg_loss = 0.0
 
                 for i, (item, target) in enumerate(train_loader):
             
@@ -55,6 +73,8 @@ class Trainer():
                     optimizer.step()
                     
                     running_loss += error.item()
+                    avg_loss += error.item()
+                    
                     printer = len(train_data.data) // (num_loss * batch_size)
                     if (i % printer == printer - 1):
                         if(verbose):
@@ -68,12 +88,16 @@ class Trainer():
                     correct += torch.sum(correct_preds).detach().cpu().item()
                     total += len(correct_preds)
                     
+                
                 train_acc = correct / total
+                train_accuracies.append(train_acc)
+                train_losses.append(avg_loss / total)
                 print("[Fold "+str(idx+1)+"] Epoch:"+str(epoch+1)+" Training Acc:"+str(train_acc))
 
                 model.eval()
-                correct = 0.
-                total = 0.
+                correct = 0.0
+                total = 0.0
+                avg_loss = 0.0
 
                 for i, (item, target) in enumerate(val_loader):
            
@@ -82,6 +106,9 @@ class Trainer():
                     target = target.to(device=self.device, dtype=torch.int64)
            
                     output = model(item)
+                    error = loss(output, target)
+                    avg_loss += error.item()
+                    
                     preds = F.softmax(output, dim=1)
                     preds_cls = preds.argmax(dim=1)
                     correct_preds = torch.eq(preds_cls, target)
@@ -89,13 +116,20 @@ class Trainer():
                     total += len(correct_preds)
 
                 valid_acc = correct / total
+                val_accuracies.append(valid_acc)
+                val_losses.append(avg_loss / total)
                 print("[Fold "+str(idx+1)+"] Epoch:"+str(epoch+1)+" Validation Acc:"+str(valid_acc))
         
             if(valid_acc > best_score and checkpoint):
                 best_score = valid_acc
                 best_vals[idx] = valid_acc
                 torch.save(model.state_dict(), './models/fold_'+str(idx+1)+'.pth.tar')
-        
+            
+            self.train_metrics['loss']['fold'+str(idx+1)] = train_losses
+            self.train_metrics['accuracy']['fold'+str(idx+1)] = train_accuracies
+            self.val_metrics['loss']['fold'+str(idx+1)] = val_losses
+            self.val_metrics['accuracy']['fold'+str(idx+1)] = val_accuracies
+            
         torch.cuda.empty_cache()
         print("Best Fold Validation Results:", np.round_(best_vals, 5))
         print("Finished Cross Validation Training")
