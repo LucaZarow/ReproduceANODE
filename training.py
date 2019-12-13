@@ -5,11 +5,6 @@ import torch.optim as optim
 from loader import torchSet
 from models import *
 
-
-#TODO: early stoppping? reduce on plateau? 
-#Make model file with optim and loss inits 
-
-
 class Trainer():
     def __init__(self, model, optimizer, data, device):
         self.model= model
@@ -51,7 +46,7 @@ class Trainer():
             val_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size, \
                                                      num_workers=num_workers)
            
-            torch.cuda.empty_cache()
+            
             model = self._initModel(model_params).to(self.device)
             optimizer = self._initOptimizer(model, learning_rate)
             loss = nn.CrossEntropyLoss().to(self.device)
@@ -65,7 +60,6 @@ class Trainer():
             self.val_metrics['epochs'] = epochs
             
             for epoch in range(epochs):
-                
                 model.train()
                 correct = 0.
                 total = 0.
@@ -77,7 +71,6 @@ class Trainer():
                     item = torch.Tensor(item)
                     item = item.to(device=self.device, dtype=torch.float32)
                     target = target.to(device=self.device, dtype=torch.int64)
-
 
                     optimizer.zero_grad()
                     output = model(item)
@@ -100,12 +93,13 @@ class Trainer():
                     correct_preds = torch.eq(preds_cls, target)
                     correct += torch.sum(correct_preds).detach().cpu().item()
                     total += len(correct_preds)
-                    
                 
                 train_acc = correct / total
                 train_accuracies.append(train_acc)
                 train_losses.append(avg_loss / total)
                 print("[Fold "+str(idx+1)+"] Epoch:"+str(epoch+1)+" Training Acc:"+str(train_acc))
+                
+                del item, target, output, error, preds, preds_cls, correct_preds
 
                 model.eval()
                 correct = 0.0
@@ -132,7 +126,9 @@ class Trainer():
                 val_accuracies.append(valid_acc)
                 val_losses.append(avg_loss / total)
                 print("[Fold "+str(idx+1)+"] Epoch:"+str(epoch+1)+" Validation Acc:"+str(valid_acc))
-        
+                
+                del item, target, output, error, preds, preds_cls, correct_preds
+                
             if(valid_acc > best_score and checkpoint):
                 best_score = valid_acc
                 best_vals[idx] = valid_acc
@@ -143,10 +139,9 @@ class Trainer():
             self.val_metrics['loss']['fold'+str(idx+1)] = val_losses
             self.val_metrics['accuracy']['fold'+str(idx+1)] = val_accuracies
         
-            del(optimizer)
-            del(model)
-            
-        torch.cuda.empty_cache()
+            del optimizer, model
+            torch.cuda.empty_cache()
+
         print("Best Fold Validation Results:", np.round_(best_vals, 5))
         print("Finished Cross Validation Training")
     
@@ -183,5 +178,6 @@ class Trainer():
             test_acc = correct / total
             test_results.append(test_acc)
             print("[Fold: "+str(idx+1)+"] Testing Acc:", test_acc)
-            del(model)
+            del item, target, output, error, preds, preds_cls, correct_preds, model
+            torch.cuda.empty_cache()
         self.test_metrics = test_results

@@ -8,7 +8,7 @@ class Autotuner():
         
     def _tune(self, model_params, training_params, idx):
         learning_rate, epochs, batch_size, num_workers = training_params
-        self.trainer.train(model_params, learning_rate, epochs, batch_size, num_workers, verbose=False)
+        self.trainer.train(model_params, learning_rate, epochs, batch_size, num_workers=4, verbose=False)
         self.trainer.test(model_params, batch_size, num_workers)
         results = np.mean(self.trainer.test_metrics)
         log = {
@@ -32,4 +32,3 @@ class Autotuner():
                 best_score = log['results']
                 best_id = idx
         return self.logs[best_id]
-            
