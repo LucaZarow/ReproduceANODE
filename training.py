@@ -16,13 +16,15 @@ class Trainer():
             'legend' : "Train",
             'epochs' : None, 
             'loss' : {},
-            'accuracy' : {}
+            'accuracy' : {},
+            'nfe' : {}
         }
         self.val_metrics = {
             'legend' : "Validation",
             'epochs' : None,
             'loss' : {},
-            'accuracy' : {}
+            'accuracy' : {},
+            'nfe' : {}
         }
         self.test_metrics = None
             
@@ -65,6 +67,7 @@ class Trainer():
                 total = 0.
                 running_loss = 0.0
                 avg_loss = 0.0
+                nfe = 0
 
                 for i, (item, target) in enumerate(train_loader):
             
@@ -94,6 +97,7 @@ class Trainer():
                     correct += torch.sum(correct_preds).detach().cpu().item()
                     total += len(correct_preds)
                 
+                nfe = model.block_ODE.function.nfe
                 train_acc = correct / total
                 train_accuracies.append(train_acc)
                 train_losses.append(avg_loss / total)
@@ -138,6 +142,8 @@ class Trainer():
             self.train_metrics['accuracy']['fold'+str(idx+1)] = train_accuracies
             self.val_metrics['loss']['fold'+str(idx+1)] = val_losses
             self.val_metrics['accuracy']['fold'+str(idx+1)] = val_accuracies
+            self.train_metrics['nfe']['fold'+str(idx+1)] = nfe
+            self.val_metrics['nfe']['fold'+str(idx+1)] = nfe
         
             del optimizer, model
             torch.cuda.empty_cache()
