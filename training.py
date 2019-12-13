@@ -142,6 +142,9 @@ class Trainer():
             self.train_metrics['accuracy']['fold'+str(idx+1)] = train_accuracies
             self.val_metrics['loss']['fold'+str(idx+1)] = val_losses
             self.val_metrics['accuracy']['fold'+str(idx+1)] = val_accuracies
+        
+            del(optimizer)
+            del(model)
             
         torch.cuda.empty_cache()
         print("Best Fold Validation Results:", np.round_(best_vals, 5))
@@ -180,4 +183,5 @@ class Trainer():
             test_acc = correct / total
             test_results.append(test_acc)
             print("[Fold: "+str(idx+1)+"] Testing Acc:", test_acc)
+            del(model)
         self.test_metrics = test_results
