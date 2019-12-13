@@ -91,10 +91,17 @@ class Plotter():
             self._setMetrics(metrics)
         self._plot(self.accuracies, title, xlabel, ylabel, fig_name)
     
-    def plotNFE(self, title, metrics=None, fig_name=None):
+    def plotNFE(self, title, style, metrics=None, fig_name=None):
         xlabel = "Number of Function Evaluations"
-        ylabel = "Accuracy"
+        
+        if style is "loss":
+            ylabel = "Loss"
+            axis = self.losses
+        else :
+            ylabel = "Accuracy"
+            axis = self.accuracies
+        
         if metrics is not None:
             self._setMetrics(metrics)
-        self._scatter(self.nfes, self.accuracies, title, xlabel, ylabel, fig_name)
+        self._scatter(self.nfes, axis, title, xlabel, ylabel, fig_name)
         
