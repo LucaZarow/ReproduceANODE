@@ -66,7 +66,7 @@ class Plotter():
         plt.figure(figsize=(5,5))
         
         for x, y in zip(xvals, yvals):
-            plt.scatter(x, y)
+            plt.scatter(x, y, alpha=0.6)
         
         plt.title(title)
         plt.xlabel(xlabel)
