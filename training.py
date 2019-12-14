@@ -58,6 +58,7 @@ class Trainer():
             train_accuracies = []
             val_losses = []
             val_accuracies = []
+            nfe = []
             self.train_metrics['epochs'] = epochs
             self.val_metrics['epochs'] = epochs
             
@@ -67,7 +68,6 @@ class Trainer():
                 total = 0.
                 running_loss = 0.0
                 avg_loss = 0.0
-                nfe = 0
 
                 for i, (item, target) in enumerate(train_loader):
             
@@ -97,7 +97,7 @@ class Trainer():
                     correct += torch.sum(correct_preds).detach().cpu().item()
                     total += len(correct_preds)
                 
-                nfe = model.block_ODE.function.nfe
+                nfe.append(model.block_ODE.function.nfe)
                 train_acc = correct / total
                 train_accuracies.append(train_acc)
                 train_losses.append(avg_loss / total)
