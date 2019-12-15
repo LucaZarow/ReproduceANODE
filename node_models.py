@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchdiffeq import odeint
+from torchdiffeq import odeint_adjoint
 
 MAX_NUM_STEPS = 1000
 
@@ -8,7 +8,7 @@ class NeuralODE(nn.Module):
     # Note certain parameters are constant throughout paper experiments and so are used directly, namely:
     # time_dependent = True
     # non_linearity = 'relu'
-    # adjoint = False
+    # adjoint = True
     def __init__(self, in_channels, height, width, num_filters, 
                  out_dim=10, augmented_dim=0, tolerance=1e-3):
         super(NeuralODE, self).__init__()
@@ -52,9 +52,9 @@ class ODEBlock(nn.Module):
         else:
             x_aug = x
 
-        x = odeint(self.function, x_aug, integration_time,
-                   rtol=self.tolerance, atol=self.tolerance, method='dopri5',
-                   options={'max_num_steps': MAX_NUM_STEPS})
+        x = odeint_adjoint(self.function, x_aug, integration_time,
+                           rtol=self.tolerance, atol=self.tolerance, method='dopri5',
+                           options={'max_num_steps': MAX_NUM_STEPS})
         return x[1]
 
 class ODEConv(nn.Module):  
@@ -87,7 +87,7 @@ class ODEConv(nn.Module):
 
         return x
 
-# same as code base
+# (Dupont et al. [2019])
 class Conv2dTime(nn.Conv2d):
     """
     Implements time dependent 2d convolutions, by appending the time variable as
