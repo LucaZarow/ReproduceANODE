@@ -4,4 +4,13 @@ This is a reproduction of [Augmented Neural ODEs](https://arxiv.org/abs/1904.016
 
 ## Notes
 
-autotune.py requires that models train individually.
+Please specify the GPU in each notebook accordingly
+
+## Requirements
+- numpy
+- matplotlib
+- torch
+- mlxtend
+- torchdiffeq
+- pickle
+- os

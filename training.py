@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
 from loader import torchSet
@@ -26,6 +27,7 @@ class Trainer():
             'accuracy' : {},
             'nfe' : {}
         }
+        
         self.test_metrics = None
             
     def metrics(self):
@@ -38,7 +40,7 @@ class Trainer():
         return self.optimizer(model.parameters(), lr)
     
     def train(self, model_params, learning_rate, epochs, batch_size, num_workers, verbose=True, checkpoint=True, num_loss = 5):
-        best_vals = [0,0,0,0,0] #static for 5fold - to be adapted
+        best_vals = [0 for i in range(len(self.data.splits))]
         for idx, split in enumerate(self.data.splits):           
             train, validation, _ = split
             train_data = torchSet(train)
@@ -159,7 +161,6 @@ class Trainer():
             test_data = torchSet(test)
             test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, \
                                                        num_workers=num_workers)
-            torch.cuda.empty_cache()
             model = self._initModel(model_params)
             model.load_state_dict(torch.load("./models/fold_"+str(idx+1)+'.pth.tar'))
             model = model.to(self.device)
@@ -184,6 +185,8 @@ class Trainer():
             test_acc = correct / total
             test_results.append(test_acc)
             print("[Fold: "+str(idx+1)+"] Testing Acc:", test_acc)
-            del item, target, output, error, preds, preds_cls, correct_preds, model
+            
+            del item, target, output, preds, preds_cls, correct_preds, model
             torch.cuda.empty_cache()
+        
         self.test_metrics = test_results
